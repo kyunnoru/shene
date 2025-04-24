@@ -55,7 +55,7 @@ function initRecognition() {
     // Send to webhook
     statusElement.textContent = 'Sending to Shene...';
 
-    // PERUBAHAN DI SINI: Mengubah format data menjadi { "chatInput": "kata-kata pengguna" }
+    // Kode yang diubah: mengirim data ke webhook dan menangani respons asli dari n8n
     fetch(webhookUrl, {
       method: "POST",
       headers: {
@@ -63,18 +63,20 @@ function initRecognition() {
       },
       body: JSON.stringify({ chatInput: voiceText })
     })
-    .then(response => {
+    .then(async (response) => {
       if (response.ok) {
         statusElement.textContent = 'Sent to Shene! Waiting for response...';
         statusElement.className = 'status success';
-        // Placeholder untuk respons AI
-        handleAIResponse({ 
-          text: "This is a placeholder AI response.", 
-          content: { 
-            type: "text", 
-            data: "AI generated content based on your speech." 
-          } 
-        });
+        
+        // Mengambil dan menggunakan data respons asli dari n8n
+        const data = await response.json();
+        const replyText = data.reply;
+        
+        // Menangani respons AI dengan teks asli
+        handleAIResponse({ text: replyText });
+        
+        // Membacakan respons menggunakan text-to-speech
+        speechSynthesis.speak(new SpeechSynthesisUtterance(replyText));
       } else {
         statusElement.textContent = 'Error sending to Shene. Continuing to listen...';
         statusElement.className = 'status error';
@@ -86,7 +88,7 @@ function initRecognition() {
     });
   }
 
-  // [Fungsi handleAIResponse sama seperti sebelumnya]
+  // Fungsi untuk menangani respons AI
   function handleAIResponse(aiResponse) {
       const historyElement = document.getElementById('history');
       const statusElement = document.getElementById('status');
@@ -206,25 +208,40 @@ document.getElementById('toggleButton').addEventListener('click', function() {
   }
 });
 
-// Start when page loads
-window.onload = function() {
-  // Inisialisasi audio context dan analyser
-  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  const analyser = audioContext.createAnalyser();
-  const canvas = document.getElementById('frequency-graph');
-  const canvasCtx = canvas.getContext('2d');
+// Fungsi untuk meminta akses mikrofon (karena nampaknya tidak ada di kode asli)
+function requestMicrophoneAccess() {
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+      // Akses berhasil
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const analyser = audioContext.createAnalyser();
+      const microphone = audioContext.createMediaStreamSource(stream);
+      microphone.connect(analyser);
+      
+      // Setup canvas and frequency graph if needed
+      setupFrequencyGraph(analyser);
+    })
+    .catch(err => {
+      console.error('Error accessing microphone:', err);
+      document.getElementById('status').textContent = 'Microphone access denied. Please allow microphone access and reload the page.';
+      document.getElementById('status').className = 'status error';
+    });
+}
 
-  // Set analyser properties
+// Fungsi untuk setup frequency graph
+function setupFrequencyGraph(analyser) {
+  const canvas = document.getElementById('frequency-graph');
+  if (!canvas) return;
+  
+  const canvasCtx = canvas.getContext('2d');
   analyser.fftSize = 2048;
   const bufferLength = analyser.frequencyBinCount;
   const dataArray = new Uint8Array(bufferLength);
 
-  // Fungsi untuk menggambar frequency graph
   function drawFrequencyGraph() {
     requestAnimationFrame(drawFrequencyGraph);
 
     analyser.getByteFrequencyData(dataArray);
-
     canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Calculate average amplitude
@@ -252,7 +269,11 @@ window.onload = function() {
     }
   }
 
-  // Inisialisasi sekali saja
+  drawFrequencyGraph();
+}
+
+// Start when page loads
+window.onload = function() {
   requestMicrophoneAccess();
   startListening();
 };
