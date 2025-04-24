@@ -1,0 +1,38 @@
+body {
+  font-family: sans-serif;
+  margin: 20px;
+}
+#dashboard-container {
+  width: 80%;
+  margin: auto;
+}
+#result {
+  margin-top: 20px;
+  font-size: 1.2em;
+}
+#history {
+  margin-top: 20px;
+  border: 1px solid #ccc;
+  padding: 10px;
+  height: 200px;
+  overflow-y: scroll;
+}
+.chat-message {
+  margin-bottom: 10px;
+}
+.user-message {
+  color: blue;
+}
+.ai-message {
+  color: green;
+}
+.status {
+  margin-top: 10px;
+  font-weight: bold;
+}
+.status.error {
+  color: red;
+}
+.status.success {
+  color: green;
+}
